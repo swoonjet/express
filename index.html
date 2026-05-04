@@ -235,13 +235,14 @@ function toggleAuto() {
     autoTimer = null;
     btn.textContent = 'autoplay';
   } else {
-    autoTimer = setInterval(next, 1400);
+    autoTimer = setInterval(next, 1600);
     btn.textContent = 'pause';
   }
 }
 
-// Start on a random word
+// Start on a random word, autoplaying
 wordEl.textContent = words[0];
+toggleAuto();
 </script>
 </body>
 </html>
