@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I _____ You</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: #0d0d0d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .center {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2.4rem;
+  }
+
+  .sentence {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: clamp(2.6rem, 8vw, 5.5rem);
+    font-weight: 400;
+    color: rgba(255,255,255,0.92);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .word {
+    font-style: italic;
+    cursor: pointer;
+    transition: opacity 0.12s ease, transform 0.12s ease;
+    display: inline-block;
+  }
+
+  .word.out {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  .controls {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  button {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 0.78rem;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.65);
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 99px;
+    padding: 0.6em 1.6em;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  button:hover {
+    color: rgba(255,255,255,0.95);
+    border-color: rgba(255,255,255,0.6);
+  }
+
+  button:active {
+    transform: scale(0.97);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+
+<div class="center">
+  <div class="sentence">i <span class="word" id="word" onclick="next()">love</span> you</div>
+  <div class="controls">
+    <button onclick="next()">express</button>
+    <button id="btn-auto" onclick="toggleAuto()">autoplay</button>
+  </div>
+</div>
+
+<script>
+// ── Truchet tile background ──────────────────────────────────────────────────
+const canvas = document.getElementById('bg');
+const ctx    = canvas.getContext('2d');
+const TILE   = 70;
+let cols, rows, raf;
+
+function resize() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+  cols = Math.ceil(canvas.width  / TILE) + 2;
+  rows = Math.ceil(canvas.height / TILE) + 2;
+}
+window.addEventListener('resize', resize);
+resize();
+
+function drawTile(x, y, angle) {
+  ctx.save();
+  ctx.translate(x + TILE / 2, y + TILE / 2);
+  ctx.rotate(angle);
+  ctx.translate(-TILE / 2, -TILE / 2);
+  // Two quarter-circle arcs — top-right corner and bottom-left corner
+  ctx.beginPath();
+  ctx.arc(0,    0,    TILE / 2, 0,          Math.PI / 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(TILE, TILE, TILE / 2, Math.PI, 3 * Math.PI / 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function render(ts) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = 'rgba(255,255,255,0.09)';
+  ctx.lineWidth   = 1.2;
+  ctx.lineCap     = 'round';
+
+  const t = ts * 0.00028;
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      // Diagonal wave + secondary ripple for organic motion
+      const wave  = Math.sin(t + c * 0.32 + r * 0.22);
+      const wave2 = Math.sin(t * 0.7 - c * 0.18 + r * 0.35) * 0.35;
+      const angle = ((wave + wave2) * 0.5 + 0.5) * Math.PI / 2;
+      drawTile(c * TILE - TILE / 2, r * TILE - TILE / 2, angle);
+    }
+  }
+  raf = requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+
+// ── Word database ────────────────────────────────────────────────────────────
+const words = [
+  "apple","mango","peach","plum","pear","grape","lemon","lime",
+  "cherry","berry","melon","kiwi","fig","date","guava","papaya",
+  "lychee","coconut","apricot","nectarine","tangerine","clementine","mandarin","orange",
+  "grapefruit","pomelo","passionfruit","dragonfruit","starfruit","jackfruit","rambutan","persimmon",
+  "pomegranate","quince","mulberry","blackberry","raspberry","strawberry","blueberry","cranberry",
+  "gooseberry","boysenberry","elderberry","huckleberry","cloudberry","lingonberry","acai","banana",
+  "watermelon","cantaloupe","honeydew","pineapple","avocado","feijoa","tamarind","soursop",
+  "loquat","carambola","pitaya","ackee","longan","sapote","cherimoya","kumquat",
+  "yuzu","calamansi","salak","marula","breadfruit","jabuticaba","mamey","abiu",
+  "langsat","pulasan","santol","wampee","goldenberry","noni","amla","bael",
+  "ziziphus","karonda","zapote","sapodilla","ugli","carrot","pea","bean",
+  "corn","beet","kale","leek","okra","yam","taro","daikon",
+  "fennel","chard","arugula","spinach","basil","mint","dill","chive",
+  "parsley","cilantro","thyme","sage","rosemary","oregano","lavender","chamomile",
+  "calendula","dandelion","clover","truffle","mushroom","pumpkin","squash","zucchini",
+  "cucumber","artichoke","asparagus","broccoli","cauliflower","celery","endive","kohlrabi",
+  "parsnip","radish","rutabaga","turnip","watercress","shallot","scallion","rhubarb",
+  "jicama","cassava","tomatillo","eggplant","potato","sunchoke","purslane","radicchio",
+  "escarole","mizuna","sorrel","samphire","fiddlehead","galangal","lemongrass","moringa",
+  "amaranth","mâche","dulse","nori","wakame","hijiki","enoki","shiitake",
+  "maitake","chanterelle","morel","porcini","saffron","turmeric","cardamom","fenugreek",
+  "lovage","tarragon","burnet","orache","glasswort","chickweed","nettle","hawthorn",
+  "elderflower","rose","tulip","daisy","lily","orchid","iris","violet",
+  "pansy","peony","aster","zinnia","dahlia","marigold","sunflower","poppy",
+  "cosmos","foxglove","snapdragon","delphinium","larkspur","lupine","hollyhock","columbine",
+  "primrose","periwinkle","hydrangea","wisteria","jasmine","honeysuckle","lilac","magnolia",
+  "gardenia","camellia","azalea","bougainvillea","hibiscus","plumeria","frangipani","lotus",
+  "heather","heliotrope","verbena","salvia","echinacea","rudbeckia","coreopsis","agapanthus",
+  "anemone","campanula","cleome","gomphrena","impatiens","lantana","lobelia","mimosa",
+  "nemesia","nicotiana","nigella","osteospermum","penstemon","portulaca","scabiosa","torenia",
+  "viola","yarrow","tansy","valerian","feverfew","borage","hyssop","comfrey",
+  "aloe","bamboo","fern","moss","lichen","bluebell","snowdrop","crocus",
+  "daffodil","hyacinth","freesia","ranunculus","moonflower","passionflower","clematis","stock",
+  "lisianthus","statice","alstroemeria","protea","banksia","grevillea","callistemon","boronia",
+  "waratah","strelitzia","anthurium","heliconia","button","bunny","petal","dewdrop",
+  "sparkle","twinkle","dimple","freckle","puddle","bubble","wiggle","giggle",
+  "snuggle","cuddle","nuzzle","sprinkle","drizzle","doodle","muffin","cupcake",
+  "cookie","bonbon","gumdrop","jellybean","lollipop","marshmallow","meringue","macaron",
+  "biscuit","waffle","pancake","dumpling","noodle","mochi","butterfly","ladybug",
+  "firefly","dragonfly","bumblebee","hummingbird","sparrow","finch","wren","robin",
+  "swallow","nightingale","warbler","canary","parakeet","lovebird","cockatiel","puffin",
+  "penguin","duckling","gosling","fawn","foal","lamb","piglet","kitten",
+  "puppy","hamster","gerbil","chinchilla","hedgehog","capybara","quokka","axolotl",
+  "narwhal","otter","beaver","lemur","loris","bushbaby","numbat","wombat",
+  "koala","possum","platypus","echidna","snowflake","raindrop","sunbeam","moonbeam",
+  "stardust","glitter","rainbow","aurora","blossom","bloom","nectar","honey",
+  "amber","crystal","pearl","sapphire","topaz","opal","amethyst","garnet",
+  "citrine","moonstone","sunstone","labradorite","malachite","turquoise","lapis","jasper",
+  "geode","fossil","seashell","starfish","seahorse","jellyfish","coral","kelp",
+  "nautilus","ribbon","bow","heart","star","moon","cloud","pebble",
+  "pinecone","acorn","chestnut","hazelnut","pistachio","macadamia","cinnamon","vanilla",
+  "caramel","toffee","butterscotch","praline","nougat","ganache","madeleine","canelé",
+  "streusel","churro","beignet","profiterole","poppet","lambkin","cherub","sweetpea",
+  "honeybee","sugarplum","babydoll","thimble","moonpie","starlight","twilight","daybreak",
+  "sundown","meadow","cobblestone","toadstool","pinwheel","kaleidoscope","prism","lantern",
+  "windmill","kite","lullaby","treacle","butterbean","jellyroll","turtledove","swansong",
+  "honeypot","cloverleaf","dewberry","foxberry","candytuft","sweetbriar","rosewater","firecracker"
+];
+
+// Fisher-Yates shuffle
+for (let i = words.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [words[i], words[j]] = [words[j], words[i]];
+}
+
+let idx = 0;
+const wordEl = document.getElementById('word');
+
+function next() {
+  wordEl.classList.add('out');
+  setTimeout(() => {
+    idx = (idx + 1) % words.length;
+    wordEl.textContent = words[idx];
+    wordEl.classList.remove('out');
+  }, 130);
+}
+
+let autoTimer = null;
+function toggleAuto() {
+  const btn = document.getElementById('btn-auto');
+  if (autoTimer) {
+    clearInterval(autoTimer);
+    autoTimer = null;
+    btn.textContent = 'autoplay';
+  } else {
+    autoTimer = setInterval(next, 1400);
+    btn.textContent = 'pause';
+  }
+}
+
+// Start on a random word
+wordEl.textContent = words[0];
+</script>
+</body>
+</html>
